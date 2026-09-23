@@ -78,6 +78,11 @@ const rnd = (a = 1) => (Math.random() - 0.5) * 2 * a;
 const _v = V(), _v2 = V(), _v3 = V(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4();
 
 const canvas = $('gl');
+// visible diagnostics: a phone gives no console, so errors and a lost GPU context are shown on screen
+function showErr(t) { const el = $('loading'); if (!el) return; el.hidden = false; el.style.cssText += ';color:#ff8a70;max-width:90vw;white-space:normal;z-index:30'; el.textContent = t; }
+addEventListener('error', e => showErr('Error: ' + (e.message || e.error)));
+addEventListener('unhandledrejection', e => showErr('Error: ' + (e.reason && e.reason.message || e.reason)));
+canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); showErr('The graphics memory ran out and the GPU reset — reload the page. (Please tell me which sortie and moment.)'); });
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -159,10 +164,24 @@ function setMute(m) { muted = m; sfx.setMuted(m); try { localStorage.setItem('ac
 
 // ======================= optional GLB models =======================
 const glbs = {};
+// phones: GPU memory is the limit (iOS kills the tab silently), so every model texture is downscaled on load
+function shrinkTex(t, max) {
+  const im = t && t.image; if (!im || !im.width || Math.max(im.width, im.height) <= max) return;
+  const k = max / Math.max(im.width, im.height), c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(im.width * k)); c.height = Math.max(1, Math.round(im.height * k));
+  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+  if (im.close) im.close();
+  t.image = c; t.needsUpdate = true;
+}
+const TEX_SLOTS = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'];
+function shrinkModel(root, max) {
+  const seen = new Set();
+  root.traverse(o => { if (!o.isMesh) return; for (const m of [].concat(o.material)) for (const sl of TEX_SLOTS) { const t = m[sl]; if (t && !seen.has(t)) { seen.add(t); shrinkTex(t, max); t.anisotropy = 4; } } });
+}
 async function loadModels(keys, withTex) {
   const tl = new THREE.TextureLoader();
   const texJobs = !withTex ? [] : ['grass', 'rock', 'snow', 'forest'].map(k => new Promise(res => tl.load(`assets/tex/${k}.jpg`, t => {
-    t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); TERRAIN_TEX[k] = t; res();
+    t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = MOBILE ? 4 : renderer.capabilities.getMaxAnisotropy(); if (MOBILE) shrinkTex(t, 1024); TERRAIN_TEX[k] = t; res();
   }, undefined, res)));
   if (withTex) await Promise.all(texJobs);
   const loader = new GLTFLoader();
@@ -170,6 +189,7 @@ async function loadModels(keys, withTex) {
     const t = setTimeout(res, 60000);
     const onLoad = g => {
       const root = g.scene; root.rotation.y = c.rotY;
+      if (MOBILE) shrinkModel(root, ['player', 'enemy', 'carrier'].includes(k) ? 1024 : 512);
       const wrap = new THREE.Group(); wrap.add(root);
       const box = new THREE.Box3().setFromObject(wrap), size = box.getSize(V()), ctr = box.getCenter(V());
       const s = c.length / Math.max(size.x, size.y, size.z);
@@ -1135,7 +1155,17 @@ function launch() {
     loadCity().then(() => { b.textContent = 'Launch'; b.disabled = false; if (state === 'brief') launch(); });
     return;
   }
-  state = 'play'; paused = false; setupMission(); show(null);
+  state = 'play'; paused = false; setupMission(); show(null); warmUp();
+}
+// upload the enemy's textures and compile its shaders while still on the catapult, not when the first bandit shows up
+function warmUp() {
+  const tmp = [];
+  for (const k of ['enemy', 'tank', 'sam', 'tower']) if (glbs[k]) {
+    const o = glbs[k].wrap.clone(); o.position.set(0, -4000, 0); scene.add(o); tmp.push(o);
+    o.traverse(m => { if (m.isMesh) for (const mt of [].concat(m.material)) for (const sl of TEX_SLOTS) if (mt[sl]) renderer.initTexture(mt[sl]); });
+  }
+  try { renderer.compile(scene, camera); } catch (e) { }
+  for (const o of tmp) scene.remove(o);
 }
 function setPause(p) {
   if (state !== 'play') return; paused = p; show(p ? 'pause' : null);
