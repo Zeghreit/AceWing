@@ -1,0 +1,14 @@
+{
+  "name": "Ace Wing",
+  "short_name": "Ace Wing",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070c0b",
+  "theme_color": "#070c0b",
+  "icons": [
+    { "src": "acewing-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "acewing-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

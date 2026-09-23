@@ -1,0 +1,7 @@
+# local-only / generated
+Claude outputs/
+concepts/
+tools/*.log
+assets/*.glb.js
+assets/test_*.glb
+*.blend1

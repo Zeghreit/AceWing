@@ -1,0 +1,170 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ace Wing">
+<meta name="theme-color" content="#070c0b">
+<title>Ace Wing</title>
+<link rel="icon" href="acewing.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<script>if (matchMedia("(pointer: coarse)").matches || /[?&]touch/.test(location.search)) document.documentElement.classList.add("touch");</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Saira+Stencil+One&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #e9f1ec; --dim: #9fb3aa; --hud: #8dffb4; --amber: #ffcf4a; --glass: rgba(8, 16, 14, 0.72);
+    --line: rgba(141, 255, 180, 0.28); --ground: #070c0b;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--ground); color: var(--ink); overflow: hidden; font: 15px/1.45 "Chakra Petch", "Segoe UI", system-ui, sans-serif; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #gl, #hud { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { pointer-events: none; }
+  #ui { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none; padding: 16px; }
+  .panel { pointer-events: auto; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    padding: clamp(18px, 3vw, 32px); width: min(680px, 100%); max-height: calc(100% - 8px); overflow: auto; box-sizing: border-box; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--hud); margin: 0 0 6px; }
+  h1 { font-family: "Saira Stencil One", "Impact", sans-serif; font-weight: 400; font-size: clamp(56px, 11vw, 112px); line-height: 0.9; margin: 0; letter-spacing: 0.02em;
+    background: linear-gradient(180deg, #fff 0%, #ffd9a8 55%, #ff8a4a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-wrap: balance; }
+  h2 { font-family: "Saira Stencil One", "Impact", sans-serif; font-weight: 400; font-size: clamp(34px, 6vw, 52px); line-height: 1; margin: 0 0 4px; color: #fff; }
+  p { margin: 10px 0; color: var(--dim); max-width: 60ch; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 18px; }
+  button { font: 700 15px "Chakra Petch", sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #06140d; background: var(--hud); border: 0; padding: 12px 22px; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--hud); border: 1px solid var(--line); }
+  button:focus-visible, .load:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+  button:hover { filter: brightness(1.1); }
+  .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 4px 20px; margin-top: 18px; font-size: 13px; color: var(--dim); }
+  .keys b { color: var(--ink); font-weight: 600; display: inline-block; min-width: 86px; }
+  .meta { font-size: 12px; color: var(--dim); letter-spacing: 0.08em; }
+  .meta b { color: var(--amber); font-weight: 600; }
+  ul.obj { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+  ul.obj li::before { content: "› "; color: var(--hud); }
+  .loads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+  .load { pointer-events: auto; text-align: left; background: rgba(141, 255, 180, 0.04); color: var(--ink); border: 1px solid var(--line); padding: 12px; cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .load strong { display: block; font: 700 22px "Chakra Petch", sans-serif; color: var(--hud); letter-spacing: 0.06em; }
+  .load span { display: block; font-size: 12.5px; color: var(--dim); margin-top: 4px; }
+  .load em { display: block; font-style: normal; font-size: 12px; color: var(--amber); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .load[aria-pressed="true"] { background: rgba(141, 255, 180, 0.14); border-color: var(--hud); }
+  .levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+  .lvl { text-align: left; text-transform: none; letter-spacing: 0; font-weight: 400; background: rgba(141,255,180,0.04); color: var(--ink); border: 1px solid var(--line); padding: 10px 12px; }
+  .lvl strong { display: block; font: 700 15px "Chakra Petch", sans-serif; color: var(--hud); letter-spacing: 0.04em; }
+  .lvl span { display: block; font-size: 12px; color: var(--dim); margin-top: 2px; }
+  .lvl:hover { background: rgba(141,255,180,0.14); border-color: var(--hud); }
+  .big { font: 700 44px "Chakra Petch", sans-serif; color: var(--amber); font-variant-numeric: tabular-nums; }
+  #muteBtn { position: fixed; top: 12px; right: 12px; z-index: 5; padding: 6px 12px; font-size: 12px; background: rgba(8,16,14,0.55); }
+  #loading { position: fixed; left: 16px; bottom: 16px; color: var(--hud); font-size: 13px; letter-spacing: 0.15em; text-transform: uppercase; }
+  /* ---------- touch controls (iPhone landscape) ---------- */
+  #touch { position: fixed; inset: 0; pointer-events: none; --sl: max(14px, env(safe-area-inset-left)); --sr: max(14px, env(safe-area-inset-right)); --sb: max(12px, env(safe-area-inset-bottom)); --st: max(10px, env(safe-area-inset-top)); }
+  #stickZone { position: absolute; left: 0; top: 0; bottom: 0; width: 46%; pointer-events: auto; touch-action: none; }
+  #stick { position: absolute; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; border: 1px solid rgba(141,255,180,0.3); background: rgba(0,0,0,0.12);
+    left: calc(var(--sl) + 90px); top: calc(100% - var(--sb) - 90px); opacity: 0.45; pointer-events: none; transition: opacity .15s; }
+  #stick.on { opacity: 0.9; transition: none; }
+  #knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(141,255,180,0.35); }
+  .tb { position: absolute; pointer-events: auto; touch-action: none; width: 62px; height: 62px; border-radius: 50%; border: 1px solid rgba(141,255,180,0.35); background: rgba(0,0,0,0.22); color: var(--hud);
+    font: 700 11px "Chakra Petch", sans-serif; letter-spacing: 0.06em; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  .tb.on, .tb:active { background: rgba(141,255,180,0.28); }
+  #tGun { right: var(--sr); bottom: var(--sb); width: 92px; height: 92px; font-size: 13px; }
+  #tMsl { right: calc(var(--sr) + 104px); bottom: calc(var(--sb) + 6px); width: 70px; height: 70px; }
+  #tFlr { right: calc(var(--sr) + 14px); bottom: calc(var(--sb) + 106px); }
+  #tUp { right: calc(var(--sr) + 188px); bottom: calc(var(--sb) + 78px); width: 54px; height: 54px; }
+  #tDown { right: calc(var(--sr) + 188px); bottom: var(--sb); width: 54px; height: 54px; }
+  #tGear { right: calc(var(--sr) + 96px); bottom: calc(var(--sb) + 96px); width: 48px; height: 48px; font-size: 10px; }
+  #tCam { right: calc(var(--sr) + 56px); top: var(--st); width: 46px; height: 46px; font-size: 10px; }
+  #tPause { left: var(--sl); top: var(--st); width: 46px; height: 46px; font-size: 14px; }
+  #rotate { position: fixed; inset: 0; display: none; place-items: center; background: #070c0b; color: var(--hud); z-index: 20; text-align: center; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; padding: 24px; }
+  #rotate b { display: block; font-size: 44px; margin-bottom: 12px; }
+  .panel { touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+  html.touch .keys { display: none; }
+  html.touch #muteBtn { top: max(10px, env(safe-area-inset-top)); right: auto; left: 50%; transform: translateX(-50%); }
+  html.touch .panel { padding: 16px 18px; }
+  html.touch h1 { font-size: clamp(40px, 9vh, 80px); }
+  html.touch #ui { padding: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  @media (orientation: portrait) { html.touch #rotate { display: grid; } }
+  @media (max-width: 560px) { .levels { grid-template-columns: 1fr 1fr; } .loads { grid-template-columns: 1fr; } .keys { display: none; } }
+  @media (prefers-reduced-motion: reduce) { .panel { backdrop-filter: none; } }
+</style>
+
+<canvas id="gl"></canvas>
+<canvas id="hud"></canvas>
+<div id="loading">Loading…</div>
+<button id="muteBtn" class="ghost" aria-pressed="true">Sound on</button>
+
+<div id="ui">
+  <section id="title" class="panel" hidden>
+    <p class="eyebrow">Carrier strike · 6 sorties</p>
+    <h1>Ace Wing</h1>
+    <p>An arcade remake of the 8-bit carrier dogfighters: catapult off the deck, hunt bandits over open ocean, take fuel from the tanker and fight your way back to a pitching deck.</p>
+    <div class="row">
+      <button id="startBtn">Take off</button>
+      <span class="meta">Best score <b id="hi">0</b></span>
+    </div>
+    <p class="eyebrow" style="margin-top:18px">Select sortie</p>
+    <div class="levels" id="levels" role="group" aria-label="Select sortie"></div>
+    <div class="keys" aria-label="Controls">
+      <div><b>W / S · ↑↓</b> pitch</div>
+      <div><b>A / D · ←→</b> bank &amp; turn</div>
+      <div><b>Q / E</b> rudder</div>
+      <div><b>Shift / Z</b> throttle ±</div>
+      <div><b>Space · LMB</b> cannon</div>
+      <div><b>F · Enter · RMB</b> missile</div>
+      <div><b>X</b> flares</div>
+      <div><b>G</b> landing gear</div>
+      <div><b>C</b> cockpit / chase</div>
+      <div><b>P</b> pause · <b style="min-width:0">M</b> mute</div>
+    </div>
+    <p class="meta" id="hint">1–6 on the title screen jumps to a sortie. Gamepad works too. Sound starts when you take off.</p>
+  </section>
+
+  <section id="brief" class="panel" hidden>
+    <p class="eyebrow" id="bNum">Sortie 1 of 6</p>
+    <h2 id="bName">Pacific Dawn</h2>
+    <p class="meta" id="bTime">Dawn</p>
+    <p id="bText"></p>
+    <ul class="obj" id="bObj"></ul>
+    <div class="loads" role="group" aria-label="Missile loadout">
+      <button class="load" aria-pressed="false"><strong>T-1</strong><span>Short-range heat seeker. Fast lock, lots of rounds.</span><em>36 rds · 2.6 km</em></button>
+      <button class="load" aria-pressed="true"><strong>T-2</strong><span>Medium-range radar missile. The balanced pick.</span><em>24 rds · 4.2 km</em></button>
+      <button class="load" aria-pressed="false"><strong>T-3</strong><span>Long-range missile. Slow lock, few rounds, huge reach.</span><em>14 rds · 6.8 km</em></button>
+    </div>
+    <div class="row"><button id="launchBtn">Launch</button><span class="meta" id="hint2">1 · 2 · 3 picks the loadout · Enter launches</span></div>
+  </section>
+
+  <section id="result" class="panel" hidden>
+    <p class="eyebrow">Debrief</p>
+    <h2 id="rTitle">Mission complete</h2>
+    <p id="rText"></p>
+    <div class="big" id="rScore">0</div>
+    <p class="meta">Best <b id="rHi">0</b></p>
+    <div class="row"><button id="resultBtn">Next sortie</button></div>
+  </section>
+
+  <section id="pause" class="panel" hidden>
+    <p class="eyebrow">Paused</p>
+    <h2>Holding pattern</h2>
+    <div class="row"><button id="resumeBtn">Resume</button><button class="ghost" id="quitBtn">Quit to title</button></div>
+  </section>
+</div>
+
+<div id="touch" hidden>
+  <div id="stickZone"></div>
+  <div id="stick"><div id="knob"></div></div>
+  <button class="tb" id="tGun">GUN</button>
+  <button class="tb" id="tMsl">MSL</button>
+  <button class="tb" id="tFlr">FLR</button>
+  <button class="tb" id="tUp">THR+</button>
+  <button class="tb" id="tDown">THR−</button>
+  <button class="tb" id="tGear">GEAR</button>
+  <button class="tb" id="tCam">CAM</button>
+  <button class="tb" id="tPause" aria-label="Pause">II</button>
+</div>
+<div id="rotate"><div><b>⟳</b>Rotate your phone to landscape</div></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="main.js"></script>
